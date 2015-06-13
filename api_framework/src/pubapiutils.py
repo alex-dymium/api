@@ -6,6 +6,8 @@ from random import randint
 import base64
 import inspect
 import random
+from email.utils import formatdate
+
 
 class Config:
     def __init__(self):
@@ -19,6 +21,7 @@ class Config:
         self.password = self.parser.get('Server', 'passwd')
         self.puser = self.parser.get('Server', 'puser')
         self.testpath = self.parser.get('Server', 'testpath')
+        self.testdata = './test_files'
 
 
 class Calls:
@@ -300,6 +303,58 @@ class Calls:
 
         return r
 
+    def upload(self, filename, path=None, time1=None, server=None, username=None, password=None, name=None,
+               content_type=None, print_call=True, method=None):
+        if server is None:
+            server = self.config.domain
+        if name is None:
+            name = os.path.basename(filename)
+        if time1 is None:
+            time1 = formatdate()
+        if path is None:
+            path = self.config.testpath
+        if method is None:
+            method = 'POST'
+        if username is None:
+            username = self.config.admin_login
+        if password is None:
+            password = self.config.password
+
+        headers = dict()
+        headers['Authorization'] = 'Basic %s' % base64.b64encode('%s:%s' % (username, password))
+        headers['Last-Modified'] = time1
+
+        if content_type is not None:
+            headers['Content-type'] = content_type
+
+        url = server + '/public-api/v1/fs-content' + path + '/' + name
+
+        local_file_path = '%s/%s' % (self.config.testdata, filename)
+
+        r = requests.request(
+            url=url,
+            headers=headers,
+            data=open(local_file_path, 'rb'),
+            method=method
+        )
+
+        try:
+            json_resp = json.loads(r.content)
+        except ValueError:
+            if method == 'OPTIONS':
+                json_resp = r.content
+            else:
+                json_resp = self.no_json
+
+        r.request.body = '<FILE_DATA> at %s' % local_file_path
+        r.json = json_resp
+        if print_call:
+            self.nice_print_out(call_name='Upload File', r=r, caller=inspect.stack()[1][3])
+
+        return r
+
+
+
     @staticmethod
     def nice_print_out(call_name, r, caller):
         header_string = ''
@@ -348,17 +403,16 @@ class Utils:
     def form_standard_path(self, name):
         return '%s/%s' % (self.config.testpath, name)
 
-    @staticmethod
-    def gen_file(file_name=None, block_size=None, num_blocks=None, text=None):
+    def gen_file(self, file_name=None, block_size=None, num_blocks=None, text=None):
         if block_size is None:
             block_size = 200
         if num_blocks is None:
             num_blocks = 1
         if file_name is None:
             file_name = 'test_filename_' + str(random.randint(1, 10000000)) + '.txt'
-        file_path = './test_files/%s' % file_name
-        if not os.path.exists('./test_files/'):
-                cmd = 'mkdir ./test_files/'
+        file_path = '%s/%s' % (self.config.testdata, file_name)
+        if not os.path.exists(self.config.testdata):
+                cmd = 'mkdir %s' % self.config.testdata
                 os.system(cmd)
         if not os.path.isfile('.test_files/%s' % file_name) and text is None:
             cmd = "dd if=/dev/urandom of='%s' bs=%d count=%d 2>/dev/null" % (file_path, block_size, num_blocks)
