@@ -7,6 +7,7 @@ import base64
 import inspect
 import random
 from email.utils import formatdate
+import filecmp
 
 
 class Config:
@@ -353,7 +354,47 @@ class Calls:
 
         return r
 
+    def download(self, filename=None, file_id=None, entry_id=None, path=None, server=None, username=None,
+                 password=None):
+        if server is None:
+            server = self.config.domain
+        if path is None and filename is None and file_id:
+            url = server + '/public-api/v1/fs-content/ids/file/' + file_id
+        elif path is None and not file_id:
+            url = server + '/public-api/v1/fs-content' + self.config.testpath + '/' + filename
+        else:
+            url = server + '/public-api/v1/fs-content' + path + '/' + filename
+        if username is None:
+            username = self.config.admin_login
+        if password is None:
+            password = self.config.password
 
+        if entry_id is not None:
+            url += '?entry_id=%s' % entry_id
+
+        headers = dict()
+
+        headers['Authorization'] = 'Basic %s' % base64.b64encode('%s:%s' % (username, password))
+
+        r = requests.get(
+            url=url,
+            headers=headers,
+            stream=True
+        )
+
+        try:
+            json_resp = json.loads(r.content)
+        except ValueError:
+
+            file1 = Utils.random_name()
+            with open(self.config.testdata + '/' + file1, 'wb') as f:
+                for chunk in r.iter_content(1024):
+                    if chunk:
+                        f.write(chunk)
+                        f.flush()
+            return r.status_code, file1
+        r.json = json_resp
+        return r
 
     @staticmethod
     def nice_print_out(call_name, r, caller):
@@ -384,6 +425,10 @@ class Utils:
     @staticmethod
     def random_name():
         return 'test_name%s' % randint(1000000, 9999999)
+
+    @staticmethod
+    def compare(file1, file2):
+        return filecmp.cmp(Config().testdata + '/' + file1, Config().testdata + '/' + file2)
 
     def delete_all_except(self, l):
         resp = self.calls.list_folders(folder_path='/Shared', caller='Cleanup')

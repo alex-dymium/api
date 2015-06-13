@@ -32,3 +32,6 @@ class TestClass(TestCase):
         assert resp.json['checksum'] == checksum
         assert resp.json['group_id'] == group_id
         assert resp.json['entry_id'] != entry_id
+        status_code, file2 = self.calls.download(file_id=group_id)
+        assert status_code == httplib.OK
+        assert self.utils.compare(file1, file2)
