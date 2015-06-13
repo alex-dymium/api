@@ -5,7 +5,7 @@ import os
 from random import randint
 import base64
 import inspect
-
+import random
 
 class Config:
     def __init__(self):
@@ -110,7 +110,7 @@ class Calls:
         try:
             json_resp = json.loads(r.content)
         except ValueError:
-            json_resp = 'NoJSON'
+            json_resp = self.no_json
 
         r.json = json_resp
         if print_call:
@@ -158,7 +158,7 @@ class Calls:
         try:
             json_resp = json.loads(r.content)
         except ValueError:
-            json_resp = 'NoJSON'
+            json_resp = self.no_json
 
         r.json = json_resp
         if print_call:
@@ -208,7 +208,7 @@ class Calls:
         try:
             json_resp = json.loads(r.content)
         except ValueError:
-            json_resp = 'NoJSON'
+            json_resp = self.no_json
 
         r.json = json_resp
         if print_call:
@@ -250,7 +250,7 @@ class Calls:
         try:
             json_resp = json.loads(r.content)
         except ValueError:
-            json_resp = 'NoJSON'
+            json_resp = self.no_json
 
         r.json = json_resp
         if print_call:
@@ -292,7 +292,7 @@ class Calls:
         try:
             json_resp = json.loads(r.content)
         except ValueError:
-            json_resp = 'NoJSON'
+            json_resp = self.no_json
 
         r.json = json_resp
         if print_call:
@@ -344,3 +344,26 @@ class Utils:
                     self.calls.delete_folder(parent_path='/Shared', name=elem['name'], caller='Cleanup')
                     index = l1['folders'].index(elem)
                     del l1['folders'][index]
+
+    def form_standard_path(self, name):
+        return '%s/%s' % (self.config.testpath, name)
+
+    @staticmethod
+    def gen_file(file_name=None, block_size=None, num_blocks=None, text=None):
+        if block_size is None:
+            block_size = 200
+        if num_blocks is None:
+            num_blocks = 1
+        if file_name is None:
+            file_name = 'test_filename_' + str(random.randint(1, 10000000)) + '.txt'
+        file_path = './test_files/%s' % file_name
+        if not os.path.exists('./test_files/'):
+                cmd = 'mkdir ./test_files/'
+                os.system(cmd)
+        if not os.path.isfile('.test_files/%s' % file_name) and text is None:
+            cmd = "dd if=/dev/urandom of='%s' bs=%d count=%d 2>/dev/null" % (file_path, block_size, num_blocks)
+            os.system(cmd)
+        elif text is not None:
+            cmd = 'echo "%s" > %s' % (text, file_path)
+            os.system(cmd)
+        return file_name
