@@ -73,7 +73,7 @@ class Calls:
         return r
 
     def delete_folder(self, name, parent_path=None, domain=None, method=None, content_type=None, accept=None,
-                      username=None, password=None, print_call=True):
+                      username=None, password=None, print_call=True, caller=None):
         if domain is None:
             domain = self.config.domain
         if method is None:
@@ -86,6 +86,8 @@ class Calls:
             username = self.config.admin_login
         if password is None:
             password = self.config.password
+        if caller is None:
+            caller = inspect.stack()[1][3]
 
         endpoint = '/public-api/v1/fs'
 
@@ -112,7 +114,7 @@ class Calls:
 
         r.json = json_resp
         if print_call:
-            self.nice_print_out(call_name='Delete Folder', r=r, caller=inspect.stack()[1][3])
+            self.nice_print_out(call_name='Delete Folder', r=r, caller=caller)
 
         return r
 
@@ -257,7 +259,7 @@ class Calls:
         return r
 
     def list_folders(self, folder_path, domain=None, method=None, content_type=None, accept=None, username=None,
-                     password=None, print_call=True):
+                     password=None, print_call=True, caller=None):
         if domain is None:
             domain = self.config.domain
         if method is None:
@@ -270,6 +272,8 @@ class Calls:
             username = self.config.admin_login
         if password is None:
             password = self.config.password
+        if caller is None:
+            caller = inspect.stack()[1][3]
 
         endpoint = '/public-api/v1/fs'
         url = '%s%s%s' % (domain, endpoint, folder_path)
@@ -292,7 +296,7 @@ class Calls:
 
         r.json = json_resp
         if print_call:
-            self.nice_print_out(call_name='List Folders', r=r, caller=inspect.stack()[1][3])
+            self.nice_print_out(call_name='List Folders', r=r, caller=caller)
 
         return r
 
@@ -327,7 +331,7 @@ class Utils:
         return 'test_name%s' % randint(1000000, 9999999)
 
     def delete_all_except(self, l):
-        resp = self.calls.list_folders(folder_path='/Shared')
+        resp = self.calls.list_folders(folder_path='/Shared', caller='Cleanup')
         l1 = resp.json
 
         for i in range(len(l1['folders'])):
@@ -337,6 +341,6 @@ class Utils:
         while l1['folders'].count(None) != len(l1['folders']):
             for elem in l1['folders']:
                 if elem is not None:
-                    self.calls.delete_folder(parent_path='/Shared', name=elem['name'])
+                    self.calls.delete_folder(parent_path='/Shared', name=elem['name'], caller='Cleanup')
                     index = l1['folders'].index(elem)
                     del l1['folders'][index]
