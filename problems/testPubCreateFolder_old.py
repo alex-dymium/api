@@ -7,8 +7,8 @@ headers = dict()
 headers['Content-Type'] = 'application/json'
 data = dict()
 data['action'] = 'add_folder'
-username = 'admin'
-password = '12345678'
+username = 'username'
+password = 'pass'
 
 data = json.dumps(data)
 
